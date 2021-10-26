@@ -35,6 +35,9 @@ def main(config):
     dataloaders = get_dataloaders(config, text_encoder)
 
     # build model architecture, then print to console
+    print(config["arch"])
+    print('module_arch- ', module_arch)
+    print(len(text_encoder))
     model = config.init_obj(config["arch"], module_arch, n_class=len(text_encoder))
     logger.info(model)
 

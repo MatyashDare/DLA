@@ -1,0 +1,108 @@
+{
+  "name": "default_config",
+  "n_gpu": 1,
+  "preprocessing": {
+    "sr": 16000,
+    "spectrogram": {
+      "type": "MelSpectrogram",
+      "args": {
+      }
+    }
+  },
+  "augmentations": {
+    "wave": [
+      {
+        "type" : "Gain", "args" : {}
+      }
+    ],
+    "spectrogram": [
+      {
+        "type" : "Augmentations", "args" : {}
+      }
+    ]
+  },
+  "arch": {
+    "type": "SpeechRecognitionModel",
+    "args": {
+        "n_cnn_layers": 3,
+        "n_rnn_layers": 5,
+        "rnn_dim": 512,
+        "n_feats": 128
+
+    }
+  },
+  "data": {
+    "train": {
+      "batch_size": 20,
+      "num_workers": 0,
+      "datasets": [
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "train-clean-100",
+            "max_audio_length": 20.0,
+            "max_text_length": 300
+          }
+        }
+      ]
+    },
+    "val": {
+      "batch_size": 1,
+      "num_workers": 0,
+      "datasets": [
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "dev-clean",
+            "max_audio_length": 20.0,
+            "max_text_length": 300
+          }
+        }
+      ]
+    }
+  },
+  "optimizer": {
+    "type": "AdamW",
+    "args": {
+      "lr": 5e-4
+    }
+  },
+  "loss": {
+    "type": "CTCLoss",
+    "args": {}
+  },
+  "metrics": [
+    {
+      "type": "ArgmaxWERMetric",
+      "args": {
+        "name": "WER (argmax)"
+      }
+    },
+    {
+      "type": "ArgmaxCERMetric",
+      "args": {
+        "name": "CER (argmax)"
+      }
+    }
+  ],
+  "lr_scheduler": {
+    "type": "OneCycleLR",
+    "args": {
+      "max_lr": 5e-4,
+        "steps_per_epoch": 1500,
+        "anneal_strategy": "linear",
+        "epochs": 15
+    }
+  },
+  "trainer": {
+    "epochs": 15,
+    "save_dir": "saved/",
+    "save_period": 5,
+    "verbosity": 2,
+    "monitor": "min val_loss",
+    "early_stop": 100,
+    "visualize": "wandb",
+    "wandb_project": "asr_project",
+    "grad_norm_clip": 10
+  }
+}
