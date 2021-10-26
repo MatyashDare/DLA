@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
 from torchvision.transforms import ToTensor
 from tqdm import tqdm
-
+import re
 from hw_asr.base import BaseTrainer
 from hw_asr.logger.utils import plot_spectrogram_to_buf
 from hw_asr.metric.utils import calc_cer, calc_wer
@@ -148,9 +148,9 @@ class Trainer(BaseTrainer):
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
 
-        metrics.update("loss", batch["loss"].item())
+        metrics.update("loss", batch["loss"].item(), is_train=is_train)
         for met in self.metrics:
-            metrics.update(met.name, met(**batch))
+            metrics.update(met.name, met(**batch), is_train=is_train)
         return batch
 
     def _valid_epoch(self, epoch):
@@ -205,7 +205,7 @@ class Trainer(BaseTrainer):
         # TODO: implement logging of beam search results
         if self.writer is None:
             return
-        argmax_inds = log_probs.cpu().argmax(-1)
+        argmax_inds = log_probs.cpu().argmax(-1).numpy()
         argmax_inds = [
             inds[: int(ind_len)]
             for inds, ind_len in zip(argmax_inds, log_probs_length)
@@ -217,6 +217,7 @@ class Trainer(BaseTrainer):
         to_log_pred = []
         to_log_pred_raw = []
         for pred, target, raw_pred in tuples[:examples_to_log]:
+            pred = re.sub('▁', ' ',pred.strip('▁'))
             wer = calc_wer(target, pred) * 100
             cer = calc_cer(target, pred) * 100
             to_log_pred.append(

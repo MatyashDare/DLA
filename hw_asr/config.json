@@ -10,20 +10,27 @@
     }
   },
   "augmentations": {
-    "wave": [],
-    "spectrogram": []
+    "wave": [
+      {
+        "type" : "Gain", "args" : {}
+      }
+    ],
+    "spectrogram": [
+      {
+        "type" : "Augmentations", "args" : {}
+      }
+    ]
   },
   "arch": {
-    "type": "BaselineModel",
+    "type": "QuartznetSmall",
     "args": {
-      "n_feats": 128,
-      "fc_hidden": 512
+      "n_feats": 128
     }
   },
   "data": {
     "train": {
-      "batch_size": 20,
-      "num_workers": 5,
+      "batch_size": 1,
+      "num_workers": 0,
       "datasets": [
         {
           "type": "LibrispeechDataset",
@@ -36,7 +43,7 @@
       ]
     },
     "val": {
-      "batch_size": 20,
+      "batch_size": 32,
       "num_workers": 5,
       "datasets": [
         {
@@ -53,7 +60,7 @@
   "optimizer": {
     "type": "SGD",
     "args": {
-      "lr": 3e-4
+      "lr": 1e-1
     }
   },
   "loss": {
@@ -75,13 +82,9 @@
     }
   ],
   "lr_scheduler": {
-    "type": "OneCycleLR",
+    "type": "StepLR",
     "args": {
-      "steps_per_epoch": 100,
-      "epochs": 50,
-      "anneal_strategy": "cos",
-      "max_lr": 4e-3,
-      "pct_start": 0.2
+      "step_size": 5000
     }
   },
   "trainer": {
@@ -93,7 +96,7 @@
     "early_stop": 100,
     "visualize": "wandb",
     "wandb_project": "asr_project",
-    "len_epoch": 100,
+    "len_epoch": 10000,
     "grad_norm_clip": 10
   }
 }

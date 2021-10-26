@@ -17,9 +17,19 @@ class CTCCharTextEncoder(CharTextEncoder):
             self.ind2char[max(self.ind2char.keys()) + 1] = text
         self.char2ind = {v: k for k, v in self.ind2char.items()}
 
+    # для бпе не нуден инт2чар, переопределить в бпе
     def ctc_decode(self, inds: List[int]) -> str:
         # TODO: your code here
-        raise NotImplementedError()
+        res = ''
+        prev_token = '^'
+        for i in range(len(inds)):
+            c = self.ind2char[inds[i]]
+            if c == '^' and prev_token == c:
+                continue
+            if c != prev_token and c != '^':
+                res += c
+            prev_token = c
+        return res
 
     def ctc_beam_search(self, probs: torch.tensor, probs_length,
                         beam_size: int = 100) -> List[Tuple[str, float]]:
@@ -31,5 +41,6 @@ class CTCCharTextEncoder(CharTextEncoder):
         assert voc_size == len(self.ind2char)
         hypos = []
         # TODO: your code here
-        raise NotImplementedError
+        # raise NotImplementedError
         return sorted(hypos, key=lambda x: x[1], reverse=True)
+

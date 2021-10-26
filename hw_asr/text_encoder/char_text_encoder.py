@@ -22,6 +22,7 @@ class CharTextEncoder(BaseTextEncoder):
         assert type(item) is int
         return self.ind2char[item]
 
+    # переопределить через бпе
     def encode(self, text) -> Tensor:
         text = self.normalize_text(text)
         try:
