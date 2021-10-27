@@ -6,16 +6,25 @@ import youtokentome as yttm
 import numpy as np
 from torch import Tensor
 import re
+import kenlm
+import pyctcdecode
+from pyctcdecode import build_ctcdecoder
+
+# load trained kenlm model
+# путь относительно DLA
+kenlm_model = kenlm.Model("lm.binary")
+
 
 # переопределеить через бпе енкод!
 # и то же самое с декодом
 class BPETextEncoder:
     def __init__(self):
         self.bpe = yttm.BPE(model='texts_str.model')
+        self.bs = build_ctcdecoder(self.bpe.vocab(), "lm.binary")
 
     def encode(self, text) -> Tensor:
         """encodes text to ints"""
-        print('TEXT:  ', text)
+        # print('TEXT:  ', text)
         text = self.normalize_text(text)
         try:
             return Tensor(self.bpe.encode([text], output_type=yttm.OutputType.ID)[0]).unsqueeze(0)
@@ -30,8 +39,8 @@ class BPETextEncoder:
     def decode(self, vector):
         # def decode(self, vector: Union[Tensor, np.ndarray, List[int]]):
         "decodes ints to tex"
-        print(vector.tolist())
-        print('DECODED: ', self.bpe.decode(vector.tolist())[0])
+        # print(vector.tolist())
+        # print('DECODED: ', self.bpe.decode(vector.tolist())[0])
         return self.bpe.decode(vector.tolist())[0]
 
 
@@ -46,11 +55,15 @@ class BPETextEncoder:
             if c != prev_token and c != '<PAD>':
                 res += c
             prev_token = c
-        print('RES', res)
+        # print('RES', res)
         return res
 
     def __len__(self):
         return self.bpe.vocab_size()
+    
+        #for BPEncoder just to be here
+    def ctc_beam_search(self, probs, beam_width):
+        return self.bs.decode_beams(probs, beam_width=beam_width)[0]
 
     @staticmethod
     def normalize_text(text: str):

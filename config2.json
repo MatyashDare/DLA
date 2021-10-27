@@ -39,6 +39,7 @@
         {
           "type": "LibrispeechDataset",
           "args": {
+            "data_dir": "mnt/datasets/train-clean-100/LibriSpeech",
             "part": "train-clean-100",
             "max_audio_length": 20.0,
             "max_text_length": 300
@@ -53,7 +54,8 @@
         {
           "type": "LibrispeechDataset",
           "args": {
-            "part": "dev-clean",
+            "data_dir": "mnt/datasets/test-clean/LibriSpeech",
+            "part": "test-clean",
             "max_audio_length": 20.0,
             "max_text_length": 300
           }
@@ -86,18 +88,16 @@
     }
   ],
   "lr_scheduler": {
-    "type": "OneCycleLR",
+    "type": "StepLR",
     "args": {
-      "max_lr": 5e-4,
-        "steps_per_epoch": 1500,
-        "anneal_strategy": "linear",
-        "epochs": 15
+        "step_size": 1000000000
+
     }
   },
   "trainer": {
-    "epochs": 15,
+    "epochs": 25,
     "save_dir": "saved/",
-    "save_period": 5,
+    "save_period": 1,
     "verbosity": 2,
     "monitor": "min val_loss",
     "early_stop": 100,

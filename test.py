@@ -8,10 +8,11 @@ from tqdm import tqdm
 
 import hw_asr.model as module_model
 from hw_asr.datasets.utils import get_dataloaders
-from hw_asr.text_encoder.ctc_char_text_encoder import CTCCharTextEncoder
+from hw_asr.text_encoder.BPEncoder import BPETextEncoder
 from hw_asr.trainer import Trainer
 from hw_asr.utils import ROOT_PATH
 from hw_asr.utils.parse_config import ConfigParser
+from hw_asr.metric.utils import calc_cer, calc_wer
 
 DEFAULT_CHECKPOINT_PATH = ROOT_PATH / "default_test_model" / "checkpoint.pth"
 
@@ -20,8 +21,8 @@ def main(config, out_file):
     logger = config.get_logger("test")
 
     # text_encoder
-    text_encoder = CTCCharTextEncoder.get_simple_alphabet()
-
+    # text_encoder = CTCCharTextEncoder.get_simple_alphabet()
+    text_encoder = BPETextEncoder()
     # setup data_loader instances
     dataloaders = get_dataloaders(config, text_encoder)
 
@@ -42,7 +43,8 @@ def main(config, out_file):
     model.eval()
 
     results = []
-
+    all_cer = 0
+    all_wer = 0
     with torch.no_grad():
         for batch_num, batch in enumerate(tqdm(dataloaders["test"])):
             batch = Trainer.move_batch_to_device(batch, device)
@@ -58,21 +60,35 @@ def main(config, out_file):
             batch["probs"] = batch["log_probs"].exp().cpu()
             batch["argmax"] = batch["probs"].argmax(-1)
             for i in range(len(batch["text"])):
+#                 print('TRUE',batch['text'][i])
                 argmax = batch["argmax"][i]
                 argmax = argmax[:int(batch["log_probs_length"][i])]
+                curBS = text_encoder.ctc_beam_search(
+                            batch["probs"][i].numpy(), beam_width=350
+                        )[0]
+#                 print('PRED',curBS)
+                curCER = calc_cer(batch["text"][i], curBS)
+                curWER = calc_wer(batch["text"][i], curBS)
+#                 print('CER', curCER)
+#                 print('WER', curWER)
                 results.append(
                     {
                         "ground_trurh": batch["text"][i],
                         "pred_text_argmax": text_encoder.ctc_decode(argmax),
-                        "pred_text_beam_search": text_encoder.ctc_beam_search(
-                            batch["probs"], batch["log_probs_length"], beam_size=100
-                        )[:10],
+                        "pred_text_beam_search": curBS,
+                        "CER": curCER,
+                        "WER": curWER
                     }
                 )
+                all_cer += curCER
+                all_wer += curWER
+    print(f'all_cer: {all_cer}')
+    print(f'all_wer: {all_wer}')
+    
     with Path(out_file).open("w") as f:
-        json.dump(results, f, indent=2)
+        json.dump(results, f, indent=2)        
 
-
+        
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description="PyTorch Template")
     args.add_argument(
@@ -140,32 +156,12 @@ if __name__ == "__main__":
     # update with addition configs from `args.config` if provided
     if args.config is not None:
         with Path(args.config).open() as f:
-            config.config.upadte(json.load(f))
+            config.config.update(json.load(f))
 
     # if `--test-data-folder` was provided, set it as a default test set
-    if args.test_data_folder is not None:
-        test_data_folder = Path(args.test_data_folder).absolute().resolve()
-        assert test_data_folder.exists()
-        config.config["data"] = {
-            "test": {
-                "batch_size": args.batch_size,
-                "num_workers": args.jobs,
-                "datasets": [
-                    {
-                        "type": "CustomDirAudioDataset",
-                        "args": {
-                            "audio_dir": str(test_data_folder / "audio"),
-                            "transcription_dir": str(
-                                test_data_folder / "transcriptions"
-                            ),
-                        },
-                    }
-                ],
-            }
-        }
 
     assert config.config.get("data", {}).get("test", None) is not None
-    config["data"]["test"]["batch_size"] = args.batch_size
-    config["data"]["test"]["n_jobs"] = args.n_jobs
+    config["data"]["test"]["batch_size"] = 1
+#     config["data"]["test"]["n_jobs"] = args.n_jobs
 
     main(config, args.output)

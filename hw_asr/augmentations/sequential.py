@@ -10,7 +10,7 @@ class SequentialAugmentation(AugmentationBase):
         self.augmentation_list = augmentation_list
 
     def __call__(self, data: Tensor) -> Tensor:
-        x = data
         for augmentation in self.augmentation_list:
-            x = augmentation(data)
-        return x
+            data = augmentation(data)
+            
+        return data
